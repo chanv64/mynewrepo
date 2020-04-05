@@ -6,6 +6,7 @@
     # use Spreadsheet::ParseExcel;
     use DateTime::Format::ISO8601;
     use Spreadsheet::ParseXLSX;
+    use List::Util qw(min max);
 
     my $FileName = "/cygwin64/home/tzysnv/Report.xlsx";
     # my $FileName = "/cygwin64/home/tzysnv/Report.xls";
@@ -37,6 +38,14 @@
 	my $col_complete_date = 32;
 	my $strOffset = 0;
 	my $date_pos = 10;
+	# initialize arrays
+	my @nr;
+	my @arr_sw_pr_num;
+	my @arr_sw_status;
+	my @arr_date1;
+	my @arr_email1;
+	my @arr_mod_email;
+	my @arr_diff;
 
 	my $count = 0; # total nr of SW Peer Reviews
 	my $count19 = 0; # total nr of SW Peer Reviews in 2019
@@ -50,16 +59,6 @@
 	my $email_start_pos = 20;
 	my $all_emails = "abdul.majeed\@delphi.com;hadrian.ho\@delphi.com;ronnie.kartha\@delphi.com;wai.phyo.zaw\@delphi.com;ser.gin.chia\@delphi.com;kean.hin.lee\@delphi.com;goke.how.lee\@delphi.com;raymond.tan\@delphi.com;tse.tsong.teo\@delphi.com;feng.qi\@delphi.com;ronald.yong\@delphi.com;steven.liu\@delphi.com";
 	my $dtoday = DateTime->today;
-
-	#printf("%3s  | %15s | %20s | %15s | %30s | %30s | %12s |\n", "Nr","SW PR#","Status","Create Date","Author Email","Moderator Email","Elapsed Day");
-        print "", pad('Nr', 5), "|";
-        print "", pad('SW PR#', 17), "|";
-        print "", pad('Status', 22), "|";
-        print "", pad('Create Date', 17), "|";
-        print "", pad('Author Email', 32), "|";
-        print "", pad('Moderator Email', 32), "|";
-        print "", pad('Elapsed Day', 14), "|\n";
-	print "--------------------------------------------------------------------------------------------------------------------------------------------------\n";
 
 	for my $row ( $row_min .. $row_max ) {
 
@@ -98,18 +97,16 @@
 		# print "($row. ", $create_date->value(), ",", $completed_date->value(), ")\n";
 		if ($date2 eq "") {
 		    # Opened SW Peer Reviews
-		    $opened++;
 		    my $dt = DateTime::Format::ISO8601->parse_datetime( $date1 );
 		    my $diff = $dtoday->delta_days($dt)->delta_days;
-		    #print "$opened. $sw_pr_num $sw_status $date1 $email1 Delta days = $diff\n";
-		    #printf("%3s. | %15s | %20s | %15s | %30s | %30s | %7s      | \n",$opened,$sw_pr_num,$sw_status,$date1,$email1,$mod_email,$diff);
-        	    print "", pad($opened, 5), "|";
-        	    print "", pad($sw_pr_num, 17), "|";
-        	    print "", pad($sw_status, 22), "|";
-        	    print "", pad($date1, 17), "|";
-        	    print "", pad($email1, 32), "|";
-        	    print "", pad($mod_email, 32), "|";
-        	    print "", pad($diff, 14), "|\n";
+		    $nr[$opened] = $opened + 1;
+        	    $arr_sw_pr_num[$opened] = $sw_pr_num;
+        	    $arr_sw_status[$opened] = $sw_status;
+        	    $arr_date1[$opened] = $date1;
+        	    $arr_email1[$opened] = $email1;
+        	    $arr_mod_email[$opened] = $mod_email;
+        	    $arr_diff[$opened] = $diff;
+		    $opened++;
 		}
 		else { # Calculate overdue SW Peer Reviews that have been closed
 		    my $dt1 = DateTime::Format::ISO8601->parse_datetime( $date1 );
@@ -173,6 +170,28 @@
 		next;
 	    } 
         }
+
+	my $nrWidth = max (map length, @nr, 'Nr') + 3;
+	my $prnumWidth = max (map length, @arr_sw_pr_num, 'SW PR#') + 3;
+	my $statusWidth = max (map length, @arr_sw_status, 'Status') + 3;
+	my $date1Width = max (map length, @arr_date1, 'Create Date') + 3;
+	my $email1Width = max (map length, @arr_email1, 'Author Email') + 3;
+	my $modemailWidth = max (map length, @arr_mod_email, 'Moderator Email') + 3;
+	my $diffWidth = max (map length, @arr_diff, 'Elapsed Day') + 3;
+
+	print '-' x ($nrWidth + $prnumWidth + $statusWidth + $date1Width + $email1Width + $modemailWidth + $diffWidth), "\n";
+	printf "%-*s%*s%*s%*s%*s%*s%*s\n",
+    		$nrWidth, "Nr", $prnumWidth, "SW PR#", $statusWidth, "Status", $date1Width, "Create Date",
+    		$email1Width, "Author Email", $modemailWidth, "Moderator Email", $diffWidth, "Elapsed Day";
+	print '-' x ($nrWidth + $prnumWidth + $statusWidth + $date1Width + $email1Width + $modemailWidth + $diffWidth), "\n";
+
+	for my $index (0 .. $#nr) {
+		printf "%-*s%*s%*s%*s%*s%*s%*s\n",
+    		$nrWidth, $nr[$index], $prnumWidth, $arr_sw_pr_num[$index],
+    		$statusWidth, $arr_sw_status[$index], $date1Width, $arr_date1[$index],
+    		$email1Width, $arr_email1[$index], $modemailWidth, $arr_mod_email[$index], $diffWidth, $arr_diff[$index];
+   	}
+
 	print "Total nr of SW Peer Reviews = $count \n";
 	print "Total nr of SW Peer Reviews in 2019 = $count19 \n";
 	print "Total nr of SW Peer Reviews in Jan 2020 = ",$count19+$count201,"\n";
@@ -182,19 +201,4 @@
 	print "Total nr of SW Peer Reviews in Feb 2020 = ",$count19+$count201+$count202+$count203,"\n";
 	print "Total nr of Open SW Peer Reviews in Mar 2020 = $openMar2020 \n";
 	print "Total nr of Opened SW Peer Reviews = $opened \n";
-
-
-sub pad {
-    # Return $str centered in a field of $col $padchars.
-    # $padchar defaults to ' ' if not specified.
-    # $str is truncated to len $column if too long.
-
-    my ($str, $col, $padchar) = @_;
-    $padchar = ' ' unless $padchar;
-    my $strlen = length($str);
-    $str = substr($str, 0, $col) if ($strlen > $col);
-    my $fore = int(($col - $strlen) / 2);
-    my $aft = $col - ($strlen + $fore);
-    $padchar x $fore . $str . $padchar x $aft;
-}
 
